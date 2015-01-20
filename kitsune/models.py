@@ -255,7 +255,7 @@ class Job(models.Model):
 
     def is_due(self):
         reqs = (
-            self.next_run <= datetime.now() and self.disabled is False
+            self.next_run <= datetime.now(self.next_run.tzinfo) and self.disabled is False
             and self.is_running is False
         )
         return (reqs or self.force_run)

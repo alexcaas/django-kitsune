@@ -160,7 +160,7 @@ class Job(models.Model):
             else:
                 j = self
             if not self.next_run or j.params != self.params:
-                self.next_run = self.rrule.after(datetime.now())
+                self.next_run = self.rrule.after(datetime.now(self.next_run.tzinfo))
         else:
             self.next_run = None
 
@@ -396,8 +396,12 @@ class Job(models.Model):
                         )
 
     def delete_old_logs(self):
-        log = Log.objects.filter(job=self).order_by('-run_date')[self.last_logs_to_keep]
-        Log.objects.filter(job=self, run_date__lte=log.run_date).delete()
+        try:
+            log = Log.objects.filter(job=self).order_by('-run_date')[self.last_logs_to_keep]
+            Log.objects.filter(job=self, run_date__lte=log.run_date).delete()
+        except IndexError:
+            # continue
+            log = Log.objects.filter(job=self).order_by('-run_date')
 
     def check_is_running(self):
         """
@@ -467,7 +471,7 @@ class NotificationRule(models.Model):
                     dt = timedelta(hours=1)
 
                 threshold = self.last_notification + dt
-                tt = datetime.now()
+                tt = datetime.now(threshold.tzinfo)
                 if threshold > tt:
                     return False
 
